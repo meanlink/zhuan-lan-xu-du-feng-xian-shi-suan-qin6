@@ -34,6 +34,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-reader-risk-development-only}
       SEED_DEMO: ${SEED_DEMO:-true}
       ARTIFACT_DIR: /artifacts
+      RECEIVER_TOKEN: ${RECEIVER_TOKEN:-reader-risk-demo-inbox-token}
     ports: ["${BACKEND_PORT:-19207}:8000"]
     volumes: ["analysis-artifacts:/artifacts"]
     depends_on:

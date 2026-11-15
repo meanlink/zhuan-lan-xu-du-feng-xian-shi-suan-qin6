@@ -2,6 +2,7 @@ import time, os, csv, io, hashlib, json
 from fastapi import HTTPException
 from src.models import Job, Report, Delivery
 from src.config.settings import ARTIFACT_DIR
+from src.services.dispatching import create_dispatches
 def create(db, data):
     j=db.get(Job,data.job_id)
     if not j or j.status!='completed' or not j.approved:
@@ -30,5 +31,6 @@ def deliver(db, report):
     os.makedirs(ARTIFACT_DIR,exist_ok=True)
     with open(os.path.join(ARTIFACT_DIR,delivery.filename),'wb') as f:f.write(data)
     with open(os.path.join(ARTIFACT_DIR,delivery.filename+'.json'),'w') as f: json.dump({'job':j.name,'params':j.params,'result':j.result,'checksum':delivery.checksum},f,ensure_ascii=False,allow_nan=False)
+    create_dispatches(db, delivery)  # 归档内容固定后,按收件方生成待确认投递
     report.next_run=time.time()+report.interval_seconds
     return delivery

@@ -1,8 +1,8 @@
-import time, json
+import time, json, os
 from sqlalchemy import select, func
 from src.config.database import Session
 from migrations.initial import migrate
-from src.models import User, Dataset, Job, Report, Delivery, Audit
+from src.models import User, Dataset, Job, Report, Delivery, Audit, Recipient, Dispatch, InboxItem
 from src.services.business import metadata, seed_records, analyze
 from src.services.reports import deliver
 from src.utils.security import hash_password
@@ -14,6 +14,11 @@ def seed():
             email=role+'@demo.local'
             if not db.scalar(select(User).where(User.email==email)):
                 db.add(User(email=email,name=name,role=role,password=hash_password('Demo123!')))
+        db.flush()
+        demo_address=os.getenv('DEMO_INBOX_ADDRESS','http://backend:8000/receiver/inbox')
+        for name in ['晨刊编辑部','夜航编辑部','周末副刊组']:
+            if not db.scalar(select(Recipient).where(Recipient.name==name)):
+                db.add(Recipient(name=name,address=demo_address,enabled=True,created_at=time.time(),updated_at=time.time()))
         db.flush()
         m=metadata()
         d=db.scalar(select(Dataset).where(Dataset.name==m['dataset_name']))
@@ -32,7 +37,7 @@ def seed():
             db.add(r);db.flush();deliver(db,r)
             db.add(Audit(actor='seed',action='demo.baseline',detail={'dataset':d.id},at=time.time()))
         db.commit()
-        counts={model.__tablename__:db.scalar(select(func.count()).select_from(model)) for model in [User,Dataset,Job,Report,Delivery,Audit]}
+        counts={model.__tablename__:db.scalar(select(func.count()).select_from(model)) for model in [User,Dataset,Job,Report,Delivery,Recipient,Dispatch,InboxItem,Audit]}
         print(json.dumps(counts,ensure_ascii=False))
         return counts
 if __name__=='__main__':seed()
